@@ -1,0 +1,22 @@
+{
+  "name": "interactive-edu",
+  "version": "1.0.0",
+  "description": "AI-Driven Visual Simulator for Math, Physics, Chemistry & History",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0",
+    "typescript": "5.5.4",
+    "@types/node": "^20.14.8"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "engines": {
+    "node": ">=18.20.0",
+    "pnpm": ">=8.0.0"
+  }
+} 

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation Sandbox</title>
+    <script src="https://cdn.plot.ly/plotly-2.32.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: system-ui, sans-serif;
+            background: #f9fafb;
+        }
+        #simulation {
+            width: 100%;
+            height: calc(100vh - 32px);
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .error {
+            color: #dc2626;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div id="simulation">
+        <div class="loading">Waiting for simulation code...</div>
+    </div>
+    
+    <script src="sandbox.js"></script>
+</body>
+</html> 
