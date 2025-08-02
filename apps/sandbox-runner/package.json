@@ -1,0 +1,9 @@
+{
+  "name": "@interactive-edu/sandbox-runner",
+  "version": "1.0.0",
+  "description": "Static iframe sandbox for executing generated code safely",
+  "scripts": {
+    "build": "echo 'Static files, no build needed'",
+    "dev": "echo 'Static files, served by frontend'"
+  }
+} 
