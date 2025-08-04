@@ -184,7 +184,6 @@ Your ONLY task: output exactly ONE valid JSON object (no markdown) that adheres 
 physics:   use p5.Vector ops (fromAngle, add, mult, normalize); show forces & energy with units.
 math:      draw axes + grid; label formula (LaTeX style); params alter function live.
 chemistry: visualise molecule/reaction; label atoms/bonds; show equation text.
-history:   timeline/map visuals; label dates/events; params control zoom/year span.
 
 ===== UI INPUT ITEM =======================================================
 { "name": "string", "label": "string", "description": "string", "unit": "string", "precision": number, "min": number, "max": number, "step": number, "value": number }
