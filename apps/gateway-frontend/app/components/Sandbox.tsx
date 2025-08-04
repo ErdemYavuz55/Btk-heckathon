@@ -35,20 +35,29 @@ export function Sandbox({ code, uiInputs, params }: SandboxProps) {
     if (!iframeRef.current) return;
 
     // Send updated parameters to sandbox
-    iframeRef.current.contentWindow?.postMessage({
-      type: 'params',
-      params
-    }, '*');
+    const iframe = iframeRef.current;
+    
+    // Small delay to ensure iframe is ready
+    const sendParams = () => {
+      iframe.contentWindow?.postMessage({
+        type: 'params',
+        params
+      }, '*');
+    };
+    
+    const timeoutId = setTimeout(sendParams, 50);
+    return () => clearTimeout(timeoutId);
   }, [params]);
 
   return (
-    <div className="w-full h-96 border rounded-lg overflow-hidden">
+    <div className="w-full h-[500px] border rounded-lg overflow-hidden bg-white shadow-sm">
       <iframe
         ref={iframeRef}
         src="/sandbox/sandbox.html"
-        className="w-full h-full border-none"
-        sandbox="allow-scripts"
+        className="w-full h-full border-none block"
+        sandbox="allow-scripts allow-same-origin"
         title="Simulation Sandbox"
+        style={{ minHeight: '500px' }}
       />
     </div>
   );

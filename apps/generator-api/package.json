@@ -11,17 +11,18 @@
   },
   "dependencies": {
     "@fastify/cors": "^8.4.0",
+    "@google/genai": "^1.12.0",
     "@google/generative-ai": "^0.2.0",
     "@interactive-edu/shared-schema": "workspace:*",
+    "@langchain/google-genai": "^0.0.25",
+    "dotenv": "^16.3.0",
     "fastify": "^4.25.0",
     "langchain": "^0.2.0",
-    "@langchain/google-genai": "^0.0.25",
-    "zod": "^3.22.0",
-    "dotenv": "^16.3.0"
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.8",
     "tsx": "^4.0.0",
     "typescript": "5.5.4"
   }
-} 
+}

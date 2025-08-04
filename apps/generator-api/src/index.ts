@@ -1,8 +1,10 @@
 import Fastify from 'fastify';
 import { config } from 'dotenv';
 import { generateRoutes } from './routes/generate';
+import path from 'path';
 
-config();
+// Load .env from root directory
+config({ path: path.join(__dirname, '../../../.env') });
 
 const server = Fastify({
   logger: true,
