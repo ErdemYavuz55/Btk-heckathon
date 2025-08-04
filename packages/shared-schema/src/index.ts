@@ -14,7 +14,7 @@ export const uiInputSchema = z.object({
 export const specSchema = z.object({
   uiInputs: z.array(uiInputSchema),
   code: z.string(),
-  image: z.string().url().optional()
+  image: z.union([z.string().url(), z.undefined()]).optional()
 });
 
 // Request schema for generator API

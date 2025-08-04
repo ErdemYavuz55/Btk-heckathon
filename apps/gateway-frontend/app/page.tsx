@@ -63,10 +63,10 @@ export default function HomePage() {
       {/* Header */}
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">
-          Interactive-Edu
+          Interactive-Edu 🎨
         </h1>
         <p className="text-lg text-gray-600">
-          AI-Driven Visual Simulator for Math, Physics, Chemistry & History
+          AI-Driven ANIMATED Simulators - Dynamic Physics, Math, Chemistry & History
         </p>
       </div>
 
@@ -98,7 +98,7 @@ export default function HomePage() {
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="e.g., 'Simulate projectile motion with 20 m/s initial velocity' or 'Show quadratic function with adjustable coefficients'"
+              placeholder="e.g., 'Animated bouncing balls with gravity control' or 'Live pendulum with oscillating motion' or 'Dynamic wave interference patterns'"
               rows={4}
               className="input-field w-full resize-none"
             />
@@ -109,7 +109,7 @@ export default function HomePage() {
             disabled={loading || !prompt.trim()}
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Generating...' : 'Generate Simulation'}
+            {loading ? 'Creating Animation...' : '🎬 Generate Live Animation'}
           </button>
         </form>
       </div>
@@ -124,9 +124,9 @@ export default function HomePage() {
 
       {/* Results */}
       {result && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           {/* Controls */}
-          <div className="space-y-4">
+          <div className="xl:col-span-1 space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Controls</h3>
             
             {result.uiInputs.map((input: UiInput) => (
@@ -153,21 +153,21 @@ export default function HomePage() {
             ))}
 
             {result.image && (
-              <div className="mt-6">
+              <div className="mt-6 hidden xl:block">
                 <h4 className="text-md font-medium text-gray-900 mb-2">Reference</h4>
                 <img
                   src={result.image}
                   alt="Educational reference"
-                  className="w-full rounded-lg border"
+                  className="w-full max-w-xs rounded-lg border mx-auto"
                 />
               </div>
             )}
           </div>
 
           {/* Simulation */}
-          <div className="lg:col-span-2">
+          <div className="xl:col-span-3">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Simulation</h3>
-            <div className="bg-white rounded-lg border p-4">
+            <div className="bg-white rounded-lg border p-2">
               <Sandbox
                 code={result.code}
                 uiInputs={result.uiInputs}
