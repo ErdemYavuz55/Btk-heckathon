@@ -12,11 +12,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50">
-        <main className="container mx-auto px-4 py-8">
-          {children}
-        </main>
+    <html lang="tr">
+      <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" async></script>
+      </head>
+      <body className="min-h-screen">
+        {children}
       </body>
     </html>
   );
