@@ -15,8 +15,8 @@ services:
 
   frontend:
     build:
-      context: ../apps/gateway-frontend
-      dockerfile: ../../infra/Dockerfile.frontend
+      context: ..
+      dockerfile: infra/Dockerfile.frontend
     environment:
       - GEN_API_URL=http://generator-api:4000
     expose:
@@ -26,8 +26,8 @@ services:
 
   generator-api:
     build:
-      context: ../apps/generator-api
-      dockerfile: ../../infra/Dockerfile.api
+      context: ..
+      dockerfile: infra/Dockerfile.api
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - PORT=4000
