@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Visualize API error:', error);
     
-    if (error?.name === 'ZodError') {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
       return NextResponse.json(
-        { error: 'Invalid request format', details: error.errors },
+        { error: 'Invalid request format', details: (error as any).errors },
         { status: 400 }
       );
     }
