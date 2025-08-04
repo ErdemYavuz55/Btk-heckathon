@@ -2,6 +2,20 @@ interface ImageCache {
   [key: string]: { url: string; timestamp: number };
 }
 
+interface WikimediaResponse {
+  thumbnail?: {
+    source: string;
+  };
+}
+
+interface UnsplashResponse {
+  results: Array<{
+    urls?: {
+      regular: string;
+    };
+  }>;
+}
+
 class ImageService {
   private cache: ImageCache = {};
   private readonly cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours
@@ -62,7 +76,7 @@ class ImageService {
       );
       
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as WikimediaResponse;
         return data.thumbnail?.source || null;
       }
     } catch (error) {
@@ -83,7 +97,7 @@ class ImageService {
       );
       
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as UnsplashResponse;
         return data.results[0]?.urls?.regular || null;
       }
     } catch (error) {
