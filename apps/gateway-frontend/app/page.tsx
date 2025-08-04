@@ -129,28 +129,39 @@ export default function HomePage() {
           <div className="xl:col-span-1 space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Controls</h3>
             
-            {result.uiInputs.map((input: UiInput) => (
-              <div key={input.name} className="slider-container">
-                <label htmlFor={input.name} className="block text-sm font-medium text-gray-700">
-                  {input.label}
-                </label>
-                <input
-                  type="range"
-                  id={input.name}
-                  min={input.min}
-                  max={input.max}
-                  step={input.step}
-                  value={sliderValues[input.name] || input.value}
-                  onChange={(e) => handleSliderChange(input.name, parseFloat(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>{input.min}</span>
-                  <span className="font-medium">{sliderValues[input.name] || input.value}</span>
-                  <span>{input.max}</span>
+            {result.uiInputs.map((input: UiInput) => {
+              const currentVal = sliderValues[input.name] ?? input.value;
+              const precision = input.precision ?? (String(input.step).split('.')[1]?.length || 0);
+              const format = (val: number) => {
+                const fixed = precision ? val.toFixed(precision) : val.toString();
+                return input.unit ? `${fixed} ${input.unit}` : fixed;
+              };
+              return (
+                <div key={input.name} className="slider-container space-y-1">
+                  <label htmlFor={input.name} className="block text-sm font-medium text-gray-700">
+                    {input.label}
+                  </label>
+                  {input.description && (
+                    <p className="text-xs text-gray-500 mb-1">{input.description}</p>
+                  )}
+                  <input
+                    type="range"
+                    id={input.name}
+                    min={input.min}
+                    max={input.max}
+                    step={input.step}
+                    value={currentVal}
+                    onChange={(e) => handleSliderChange(input.name, parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="flex justify-between text-xs text-gray-600">
+                    <span>{format(input.min)}</span>
+                    <span className="font-medium">{format(currentVal)}</span>
+                    <span>{format(input.max)}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {result.image && (
               <div className="mt-6 hidden xl:block">
