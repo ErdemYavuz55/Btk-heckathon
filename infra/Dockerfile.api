@@ -6,22 +6,21 @@ RUN npm install -g pnpm@8
 # Create app directory
 WORKDIR /app
 
-# Copy workspace files
-COPY ../../package.json ../../pnpm-workspace.yaml ../../turbo.json ./
-COPY ../../packages ./packages
+# Copy workspace root files
+COPY package.json pnpm-workspace.yaml turbo.json pnpm-lock.yaml ./
 
-# Copy api app
-COPY . ./apps/generator-api
+# Copy packages and apps
+COPY packages/ ./packages/
+COPY apps/generator-api/ ./apps/generator-api/
 
-# Install dependencies
+# Install all dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build shared schema
+# Build shared schema first
 RUN pnpm --filter @interactive-edu/shared-schema build
 
 # Build API
-WORKDIR /app/apps/generator-api
-RUN pnpm build
+RUN pnpm --filter generator-api build
 
 # Production stage
 FROM node:18-alpine AS production
