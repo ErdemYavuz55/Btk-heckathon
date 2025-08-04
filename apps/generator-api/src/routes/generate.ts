@@ -1,7 +1,24 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { generateRequestSchema, specSchema } from '@interactive-edu/shared-schema';
 import { imageService } from '../services/imageService';
+
+function isCodeValid(code: string): boolean {
+  try {
+    // A simple check to see if the code can be parsed as a function body.
+    // We replace 'export function render' to avoid module-level syntax errors.
+    const functionBody = code.replace(/export\s+function\s+render\s*\([^)]*\)\s*\{/, 'function render() {');
+    new Function(functionBody);
+    
+    // Check for balanced braces
+    const openBraces = (code.match(/\{/g) || []).length;
+    const closeBraces = (code.match(/\}/g) || []).length;
+    return openBraces === closeBraces && openBraces > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
 
 export async function generateRoutes(fastify: FastifyInstance) {
   fastify.post('/generate', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -17,7 +34,7 @@ export async function generateRoutes(fastify: FastifyInstance) {
       if (process.env.GEMINI_API_KEY === 'placeholder-key-for-testing') {  // Disabled mock for real API testing
         const mockResponse = {
           uiInputs: [
-            { name: 'gravity', label: 'Gravity (m/s²)', min: 1, max: 20, step: 0.5, value: 9.81 },
+            { name: 'gravity', label: 'Gravity', description: 'Acceleration due to gravity', unit: 'm/s²', precision: 2, min: 1, max: 20, step: 0.5, value: 9.81 },
             { name: 'restitution', label: 'Coefficient of Restitution', min: 0.1, max: 1, step: 0.05, value: 0.8 },
             { name: 'mass', label: 'Ball Mass (kg)', min: 0.1, max: 5, step: 0.1, value: 1.0 },
             { name: 'airResistance', label: 'Air Resistance', min: 0, max: 0.1, step: 0.01, value: 0.02 }
@@ -148,104 +165,108 @@ export async function generateRoutes(fastify: FastifyInstance) {
       }
 
       // 3) Initialize Gemini with official Google SDK
-      const genAI = new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY,
-      });
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-      // 4) Create EDUCATIONAL ANIMATION prompt - STRICT JSON ONLY
-      const fullPrompt = `CRITICAL: Return ONLY a valid JSON object, no explanations, no markdown, no extra text.
+      // 4) Create OPTIMIZED prompt - SHORT and FAST
+      const fullPrompt = `You are **Interactive-Edu CodeGen**, a senior p5.js engineer and educator.
+Your ONLY task: output exactly ONE valid JSON object (no markdown) that adheres to the schema below and whose "code" field is a COMPLETE JavaScript module following the TEMPLATE afterwards.
 
-You are creating EDUCATIONAL PHYSICS SIMULATIONS for BROWSER environment. Create scientifically accurate animations that teach physics concepts.
+===== HARD RULES =========================================================
+1. JSON must parse on first try; no comments or extra keys.
+2. "code" must compile via new Function after replacing \`export function render\` ➜ \`function render\`.
+3. No import/require/fetch/WebSocket/localStorage.
+4. All braces/parentheses/brackets balanced.
+5. Use defensive param access (e.g., const g = params.gravity ?? 9.81).
+6. Mount sketch ONLY with **new p5(sketch, el);**.
+7. Keep TEMPLATE sections ❶–❸ exactly once and in order.
 
-BROWSER CODE REQUIREMENTS:
-- DO NOT use require() or import statements - libraries are already available
-- Use window.p5 and window.Plotly directly (already loaded globally)
-- Show real physics: formulas, calculations, vectors, energy
-- Use p5.js with real-time calculations and educational displays
-- Include velocity vectors, force arrows, trajectories
-- Display live physics data: position, velocity, acceleration, energy
-- Make it educational with accurate physics equations
+===== TOPIC-SPECIFIC CHECKLIST ===========================================
+physics:   use p5.Vector ops (fromAngle, add, mult, normalize); show forces & energy with units.
+math:      draw axes + grid; label formula (LaTeX style); params alter function live.
+chemistry: visualise molecule/reaction; label atoms/bonds; show equation text.
+history:   timeline/map visuals; label dates/events; params control zoom/year span.
 
-CRITICAL SAFETY REQUIREMENTS:
-- ALWAYS use defensive programming - check if variables exist before using them
-- Use (value || 0).toFixed(2) instead of value.toFixed(2)
-- Initialize ALL variables with default values
-- Handle undefined params gracefully: const gravity = params.gravity || 9.81
-- Wrap all calculations in try-catch blocks
-- Always validate numbers before using toFixed(), toString(), etc.
-- Example safe code: const speed = Math.sqrt((vx || 0) * (vx || 0) + (vy || 0) * (vy || 0))
+===== UI INPUT ITEM =======================================================
+{ "name": "string", "label": "string", "description": "string", "unit": "string", "precision": number, "min": number, "max": number, "step": number, "value": number }
+At least two (2) such items required.
 
-CODE STRUCTURE REQUIREMENTS:
-- export function render(el, params) { /* ALWAYS validate params first */ }
-- Always start with: params = params || {}; 
-- Initialize sketch variables with fallbacks: let ball = { x: 100, y: 100, vx: params.initialVx || 3, vy: 0 };
-- Use safe math: const result = isNaN(calculation) ? 0 : calculation;
-
-JSON Schema (RETURN ONLY THIS FORMAT):
+===== JSON FORMAT =========================================================
 {
-  "uiInputs": [{"name":"str","label":"str","min":num,"max":num,"step":num,"value":num}],
-  "code": "export function render(el, params) { params = params || {}; /* SAFE p5.js educational physics with error handling */ }",
-  "image": "optional_url_string_or_undefined"
+  "uiInputs": [ <>=2 items as above ],
+  "code": "<COMPLETE JS MODULE>",
+  "image": "https://... (optional) or empty string"
 }
 
+===== CODE TEMPLATE (fill the gaps, keep markers) =========================
+const Plotly = window.Plotly;          // ❶ globals
+const p5     = window.p5;
+
+export function render(el, params) {   // ❸ render
+  params = window.currentParams || params || {};
+  const sketch = (p) => {
+    /* p.setup */
+    /* p.draw  */
+    /* p.windowResized */
+  };
+  new p5(sketch, el);
+}
+===========================================================================
+
+---
+USER REQUEST
 Topic: ${body.topic}
-Language: ${body.lang}
-Request: ${body.prompt}
+Prompt: ${body.prompt}
+---
+RETURN ONLY THE JSON OBJECT:`
 
-RETURN ONLY VALID JSON:`;
 
-                           // 5) Call Gemini with new API (using latest model for education)
-              const response = await genAI.models.generateContent({
-                model: 'gemini-2.5-pro',  // Latest and most powerful model
-                contents: fullPrompt,
-              });
 
-                           let responseText = response.text || '';
-
-              // Advanced JSON cleaning for Gemini 2.5 Pro
-              responseText = responseText
-                .replace(/```json\n?/g, '')  // Remove markdown json blocks
-                .replace(/```\n?/g, '')      // Remove markdown code blocks
-                .replace(/^[^{]*{/g, '{')    // Remove text before first {
-                .replace(/}[^}]*$/g, '}')    // Remove text after last }
-                .trim();
-
-              // Try to extract JSON if wrapped in text
-              const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                responseText = jsonMatch[0];
-              }
-
-              // Parse JSON response
+              // 5) Call Gemini with FAST model and timeout
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+              
               let geminiResult;
               try {
-                geminiResult = JSON.parse(responseText);
-              } catch (parseError) {
-                fastify.log.error('Failed to parse Gemini response as JSON:', responseText);
-                fastify.log.error('Original response:', response.text);
-                
-                // Try to extract and fix common JSON issues
+                const generativeModel = genAI.getGenerativeModel({
+                  model: "gemini-2.5-pro",
+                  generationConfig: {
+                    temperature: 0.2,
+                  },
+                });
+
+                const result = await generativeModel.generateContent(fullPrompt);
+                clearTimeout(timeoutId);
+
+                const response = result.response;
+                const rawText = response.text();
+                // Clean markdown fences if present
+                const cleanedText = rawText
+                  .replace(/```json\s*/gi, '')
+                  .replace(/```/g, '')
+                  .trim();
                 try {
-                  // Remove trailing commas and fix common issues
-                  const fixedJson = responseText
-                    .replace(/,(\s*[}\]])/g, '$1')  // Remove trailing commas
-                    .replace(/(\w+):/g, '"$1":')    // Quote unquoted keys
-                    .replace(/'/g, '"');            // Replace single quotes with double
-                  
-                  geminiResult = JSON.parse(fixedJson);
-                  fastify.log.info('JSON fixed and parsed successfully');
-                } catch (secondError) {
-                  // Return mock response as fallback
-                  fastify.log.warn('Using fallback mock response due to JSON parsing failure');
-                  geminiResult = {
-                              uiInputs: [
-            { name: 'gravity', label: 'Gravity', min: 0.5, max: 15, step: 0.5, value: 9.81 },
-            { name: 'restitution', label: 'Bounce', min: 0.1, max: 1, step: 0.1, value: 0.8 }
-          ],
-                                      code: "export function render(el, params) { params = params || {}; const sketch = function(p) { let ball = { x: 100, y: 100, vx: 3, vy: 0 }; p.setup = function() { p.createCanvas(800, 400); }; p.draw = function() { const gravity = params.gravity || 9.81; const restitution = params.restitution || 0.8; p.background(240, 248, 255); ball.vy += gravity * 0.02; ball.x = (ball.x || 0) + (ball.vx || 0); ball.y = (ball.y || 0) + (ball.vy || 0); if ((ball.x || 0) < 20 || (ball.x || 0) > 780) { ball.vx = (ball.vx || 0) * -0.8; ball.x = (ball.x || 0) < 20 ? 20 : 780; } if ((ball.y || 0) > 380) { ball.vy = (ball.vy || 0) * -restitution; ball.y = 380; } p.fill(100, 200, 100); p.ellipse(ball.x || 0, ball.y || 0, 40, 40); p.fill(0); p.text('Gravity: ' + ((gravity || 0).toFixed(2)), 10, 20); p.text('Restitution: ' + ((restitution || 0).toFixed(2)), 10, 40); }; }; const instance = new p5(sketch); instance.mount(el); return instance; }",
-                    image: undefined
-                  };
+                  geminiResult = JSON.parse(cleanedText);
+                } catch (jsonErr) {
+                  console.error('❌ JSON parse failed even after cleaning:', jsonErr);
+                  throw new Error('LLM_INVALID_JSON');
                 }
+
+                // **API-Side Code Validation**
+                if (!geminiResult.code || !isCodeValid(geminiResult.code)) {
+                  console.error('❌ Invalid code received from LLM, forcing fallback.');
+                  throw new Error('LLM_INVALID_CODE');
+                }
+                
+              } catch (error: any) {
+                clearTimeout(timeoutId);
+                console.error('❌ Gemini API call failed:', error);
+                
+                if (error.name === 'AbortError') {
+                    console.log('⚠️ LLM timeout, using fallback');
+                    throw new Error('LLM_TIMEOUT');
+                }
+                
+                throw new Error('LLM_GENERATION_FAILED');
               }
 
                     // Fix image field for schema compatibility
@@ -283,6 +304,47 @@ RETURN ONLY VALID JSON:`;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       fastify.log.error('Generate route error:', error);
+      
+      // Handle specific errors
+      if (['LLM_TIMEOUT','LLM_GENERATION_FAILED','LLM_INVALID_CODE','LLM_INVALID_JSON'].includes(errorMessage)) {
+        fastify.log.warn(`⚠️ ${errorMessage} - using fast fallback`);
+        const fallbackSpec = {
+          uiInputs: [
+            { name: 'gravity', label: 'Gravity', min: 1, max: 20, step: 0.5, value: 9.81 },
+            { name: 'bounce', label: 'Bounce', min: 0.1, max: 1, step: 0.1, value: 0.8 }
+          ],
+          code: `export function render(el, params) {
+  params = params || {};
+  const sketch = (p) => {
+    let ball = { x: 100, y: 100, vx: 3, vy: 0 };
+    p.setup = () => {
+      p.createCanvas(800, 400);
+    };
+    p.draw = () => {
+      const gravity = params.gravity || 9.81;
+      const bounce = params.bounce || 0.8;
+      p.background(240, 248, 255);
+      ball.vy += gravity * 0.02;
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+      if (ball.x < 20 || ball.x > 780) {
+        ball.vx *= -bounce;
+        ball.x = ball.x < 20 ? 20 : 780;
+      }
+      if (ball.y > 380) {
+        ball.vy *= -bounce;
+        ball.y = 380;
+      }
+      p.fill(100, 200, 100);
+      p.ellipse(ball.x, ball.y, 40, 40);
+    };
+  };
+  new p5(sketch, el);
+}`,
+          image: undefined
+        };
+        return reply.send(fallbackSpec);
+      }
       
       if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
         return reply.status(400).send({ 

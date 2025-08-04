@@ -4,6 +4,12 @@ import { z } from 'zod';
 export const uiInputSchema = z.object({
   name: z.string(),
   label: z.string(),
+  /** Optional short description shown under the control */
+  description: z.string().optional(),
+  /** Unit suffix to display next to numbers (e.g. "m/s²", "kg") */
+  unit: z.string().optional(),
+  /** Number of decimals to display for the current value label */
+  precision: z.number().int().min(0).max(10).optional(),
   min: z.number(),
   max: z.number(),
   step: z.number(),

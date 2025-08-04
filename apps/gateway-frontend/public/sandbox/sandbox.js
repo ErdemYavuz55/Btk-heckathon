@@ -38,6 +38,27 @@
         if (!code.includes('export function render')) {
             throw new Error('Code must export a render function');
         }
+        
+        // Basic syntax will be validated via the dynamic Function constructor below.
+        // Manual brace/parenthesis/bracket counting has been removed to avoid
+        // false positives when these characters appear inside strings, comments
+        // or template literals.
+
+        
+        // Check for incomplete render function
+        const renderMatch = code.match(/export\s+function\s+render\s*\([^)]*\)\s*\{/);
+        if (!renderMatch) {
+            throw new Error('Invalid render function syntax');
+        }
+        
+        // Try basic JS syntax check
+        try {
+            new Function(code.replace(/export\s+function\s+render/, 'function render'));
+        } catch (syntaxError) {
+            console.error('❌ Syntax error in user code:\n', code);
+            console.error('❌ Original syntax error object:', syntaxError);
+            throw new Error(`JavaScript syntax error: ${syntaxError.message} (check browser console for exact location)`);
+        }
     }
 
     function waitForGlobals() {
@@ -119,25 +140,35 @@
             transformed = transformed.replace(/import.*?from.*?;?\n?/gi, '');
             transformed = transformed.replace(/const.*?require.*?;?\n?/gi, '');
             
-            // Remove dangerous functions
+                        // Remove dangerous functions
             transformed = transformed.replace(/eval\s*\(/gi, '(function(){throw new Error("eval not allowed")})');
-            transformed = transformed.replace(/Function\s*\(/gi, '(function(){throw new Error("Function not allowed")})');
-            transformed = transformed.replace(/new\s+Function/gi, '(function(){throw new Error("new Function not allowed")})');
+           // Block usage of the global Function constructor more safely
+           transformed = transformed.replace(/\bnew\s+Function\s*\(/g, '(function(){throw new Error("new Function not allowed")})(');
+           // NOTE: We no longer blindly replace "Function(" because that also
+           // matches ordinary function declarations when used with the /i flag,
+           // corrupting valid code (e.g. arrow functions wrapped in parentheses).
+
+           // Remove user-defined duplicates of Plotly / p5 constants to avoid redeclare errors
+           transformed = transformed.replace(/(?:const|let|var)\s+Plotly\s*=.*?;?\n?/g, '');
+           transformed = transformed.replace(/(?:const|let|var)\s+p5\s*=.*?;?\n?/g, '');
 
             // Inject globals at the beginning
             transformed = `const Plotly = window.Plotly; const p5 = window.p5;\n${transformed}`;
             
+            // Alias common LLM mistakes (p.Vector → p5.Vector)
+            transformed = transformed.replace(/\bp\.Vector\b/g, 'p5.Vector');
+            
             // Fix params access issue by ensuring render function always gets current params
             transformed = transformed.replace(
-                /export\s+function\s+render\s*\(\s*([^,)]+)\s*,\s*([^)]+)\s*\)/g,
+                /export\s+function\s+render\s*\(\s*([^,)]+)\s*,\s*([^)]+)\s*\)\s*\{/g,
                 'export function render($1, params) {\n  // Ensure params is always current\n  params = window.currentParams || params || {};'
             );
 
             // Validate transformed code
             validateCode(transformed);
 
-            // Debug: Log transformed code only if there are errors
-            // console.log('🔍 Transformed code:', transformed);
+            // Only log on validation errors
+            console.log('✅ Code validated and transformed successfully');
 
             // Create data URL (UTF-8 safe)
             let base64, dataUrl;
@@ -156,12 +187,12 @@
                 currentModule = null;
             }
 
-            // Dynamic import with timeout
+            // Dynamic import with shorter timeout
             abortController = new AbortController();
             const timeoutId = setTimeout(() => {
                 abortController.abort();
-                showError('Execution timeout (2 seconds)');
-            }, 2000);
+                showError('Execution timeout (5 seconds)');
+            }, 5000); // Increased to 5 seconds for better reliability
 
             try {
                 console.log('🔄 Attempting to import data URL...');
@@ -202,6 +233,9 @@
     }
 
     function updateParams(newParams) {
+        // Pre-clean canvases to avoid stacking
+        document.querySelectorAll('#simulation canvas').forEach(c => c.remove());
+        document.querySelectorAll('.p5Canvas').forEach(d => d.remove());
         if (!currentModule || !currentRenderFunction) {
             console.warn('Cannot update params: missing module or render function');
             return;
@@ -244,11 +278,17 @@
                     try {
                         // Clean up old p5 instances without removing canvas
                         if (window.p5 && window.p5.instances) {
+                            // Remove ALL existing p5 instances (including the one attached to simulationEl)
                             window.p5.instances.forEach(instance => {
-                                if (instance.remove && instance !== simulationEl.p5instance) {
+                                if (instance.remove) {
                                     instance.remove();
                                 }
                             });
+                            // Clear container to avoid multiple stacked frames/canvases
+                            simulationEl.innerHTML = '';
+                            // Remove any leftover canvases or p5 canvas wrappers in document to prevent stacking
+                            document.querySelectorAll('#simulation canvas').forEach(c => c.remove());
+                            document.querySelectorAll('.p5Canvas').forEach(d => d.remove());
                         }
                         
                         // Set global params for the render function to use
