@@ -29,12 +29,10 @@ RUN npm install -g pnpm@8
 
 WORKDIR /app
 
-# Copy built application
+# Copy built application and dependencies
 COPY --from=base /app/apps/generator-api/dist ./dist
 COPY --from=base /app/apps/generator-api/package.json ./
-
-# Install production dependencies
-RUN pnpm install --prod --frozen-lockfile
+COPY --from=base /app/node_modules ./node_modules
 
 EXPOSE 4000
 
